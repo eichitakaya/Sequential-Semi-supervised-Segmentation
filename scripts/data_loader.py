@@ -4,6 +4,14 @@ import torch
 import nibabel as nib
 import glob
 
+class DatasetForSemi(torch.utils.data.Dataset):
+    # input: データセット名（ex:heart, lung cancer, etc）
+    # output: 1セットの連続画像を吐き出す．
+    # memo: 基本的にシャッフルはしない（する必要がない）
+    def __init__(self, dataset_name):
+        self.dataset_name = dataset_name
+        
+    
 class DataLoaderFor4s:
     def __init__(self, target_volume):
         self.target_volume: str = target_volume # The kind of organ or lesion. (str)
@@ -12,7 +20,8 @@ class DataLoaderFor4s:
         self.volumes: list = [] # テンソル型に変換するのは呼び出された後でよい？
     
     def generate_id_list(self, target_name):
-        id_list: list = []
+        path = target_name + base_path
+        id_list = glob.glob(path + "*.nii*")
         return id_list
     
     def generate_volumes(self, id_list):
