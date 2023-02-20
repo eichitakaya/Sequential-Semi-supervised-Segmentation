@@ -14,35 +14,43 @@ class DatasetForSemi(torch.utils.data.Dataset):
     
 class DataLoaderFor4s:
     def __init__(self, target_volume):
-        self.target_volume: str = target_volume # The kind of organ or lesion. (str)
-        self.volume_id_list: list = [] # The length of this list is corresponding to the total number of organ or lesion.
+        self.target_volume_path: str = get_dataset_name(target_volume) # The kind of organ or lesion. (str)
+        self.patient_id_list: list = get_patient_id_list()
+        #self.volume_id_list: list = get_volumes() # The length of this list is corresponding to the total number of organ or lesion.
         
         self.volumes: list = [] # テンソル型に変換するのは呼び出された後でよい？
     
-    def generate_id_list(self, target_name):
-        path = target_name + base_path
+    def get_patient_id_list(self):
+        path = self.target_volume
         id_list = glob.glob(path + "*.nii*")
         return id_list
     
-    def generate_volumes(self, id_list):
-        volumes: list = []
+    def get_volumes(self, patient_id):
+        # 全てのラベルが連続している（真っ黒な画像を挟まない）症例のみを抽出
+        # とりあえず，heart, spleen, hippocampusは連続していることにしておく
+        # １症例に複数の病変が含まれる場合については，後回し
+        
+        volumes: list = glob.glob()
         return volumes
     
-    def id_to_volume(self, patient_id):
+    def id_to_volumes(self, patient_id):
+        # 全てのラベルが連続している（真っ黒な画像を挟まない）症例のみを抽出
+        # とりあえず，heart, spleen, hippocampusは連続していることにしておく
+        # １症例に複数の病変が含まれる場合については，後回し
+        # __getitem__の中で使う
         return
+    
+    def __getitem__(self, item):
+        patient_id = self.patient_id_list[item]
+        return id_to_volumes(patient_id)
 
 class GroupWiseSplit():
     def __init__(self, target_volume, val_ratio, group_shuffle):
         self.target_volume: str = target_volume # Choose organ or lesion. (str)
         self.val_ratio: float = val_ratio
         self.shuffle: bool = group_shuffle
-            
-        if target_volume.lower() == "hippocampus":
-            self.base_path = "../data/Task04_Hippocampus/imagesTr/"
-        if target_volume.lower() == "heart":
-            self.base_path = "../data/Task02_Heart/imagesTr/"
-        if target_volume.lower() == "spleen":
-            self.base_path = "../data/Task09_Spleen/imagesTr/"
+        
+        self.base_path = get_dataset_name[target_volume.lower()]
             
         self.groups: list = self._get_groups(self.base_path)
         
@@ -131,3 +139,14 @@ class Decathlon(torch.utils.data.Dataset):
     def __len__(self):
         #total number of slices
         return 
+
+
+def get_dataset_name(name):
+    name_path_dict = {"hippocampus":"/takaya_workspace/Medical_AI/data/decathlon/Task04_Hippocampus/imagesTr/",
+                      "heart":"/takaya_workspace/Medical_AI/data/decathlon/Task02_Heart/imagesTr/",
+                      "spleen":"/takaya_workspace/Medical_AI/data/decathlon/Task09_Spleen/imagesTr/"}
+    return name_path_dict[name]
+
+if __name__ == "__main__":
+    data = DataLoaderFor4s("heart")
+    print(data.target_volume)
