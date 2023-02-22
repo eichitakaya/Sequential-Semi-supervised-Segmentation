@@ -17,7 +17,7 @@ from PIL import Image
 
 import postprocessing as pp
 
-class SemisuperviesedLearning:
+class 4S:
     def __init__(self, model, repeat_num, raw_model="", alpha=0.001, _lambda=0.0005, n=3, M=3, epoch=1, semi_epoch=0, batch=3, gpu_id=-1, dataset_num=0, scratch=0, pp=1, save_dir="", supervise=0, reverse=0, locally=0):
         #M >= batchは必須
         self.gpu_id = gpu_id
@@ -233,5 +233,5 @@ class SemisuperviesedLearning:
 
 if __name__ == "__main__":
     model = DCN_master.DCN_modify10()
-    learn = SemisuperviesedLearning(model)
+    learn = 4S(model)
     learn.training()
