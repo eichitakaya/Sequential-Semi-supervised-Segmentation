@@ -12,7 +12,7 @@ class DatasetForSemi(torch.utils.data.Dataset):
         self.dataset_name = dataset_name
         
     
-class DataLoaderFor4s:
+class DataLoaderFor4S:
     def __init__(self, target_volume):
         self.target_volume_path: str = get_dataset_name(target_volume)[0] # The kind of organ or lesion. (str)
         self.target_z_axis: int = get_dataset_name(target_volume)[1]
