@@ -4,6 +4,7 @@ import torch
 import nibabel as nib
 import glob
 from fractal_analysis import fractal_dimension
+from active_selection import calc_max_variance_group
 from PIL import Image
 
 class DatasetForSemi(torch.utils.data.Dataset):
@@ -63,6 +64,8 @@ class DataLoaderFor4S:
     def __getitem__(self, item):
         patient_id = self.patient_id_list[item]
         X, T = self.id_to_volumes(patient_id)
+        #Xはウィンドウニング処理して8bitに変換
+        X = volume_windowning(X)
         return X, T
 
 class GroupWiseSplit():
@@ -178,12 +181,18 @@ def axis_transpose(arr, z_axis):
         return np.transpose(arr, (1, 0, 2))
     elif z_axis == 2:
         return np.transpose(arr, (2, 0, 1))
+
+def volume_windowning(volume):
+    min_ = np.min(volume)
+    max_ = np.max(volume)
+    scale = 255.0/(max_ - min_)
+    volume = volume * scale # 0-255の範囲にリスケール
+    volume = np.uint8(volume) # 符号なしバイトに変換
+    return volume
         
     
 if __name__ == "__main__":
     data = DataLoaderFor4S("heart")
     img = Image.fromarray(np.uint8(data[0][0][0])).convert("L")
     img.save("heart.png")
-    print(data[0][0][0].max(), data[0][0][0].min())
-    print(fractal_dimension(data[0][0][0]))
-    print(data[0][0].shape, data[0][1].shape)
+    print(calc_max_variance_group(data[1][0], 3))

@@ -6,18 +6,18 @@ def otsu(arr):
     # 方法2 （OpenCVで実装）
     ret, th = cv2.threshold(arr, 0, 255, cv2.THRESH_OTSU)
     # 結果を出力
-    print(th.min(), th.max())
+    #print(th.min(), th.max())
     return th
 
 def fractal_dimension(arr):
     # 入力は2次元のグレースケール行列
     arr = otsu(arr)
     # finding all the non-zero pixels
-    print(arr.max(), arr.min())
+    #print(arr.max(), arr.min())
     pixels=[]
     for i in range(arr.shape[0]):
         for j in range(arr.shape[1]):
-            if arr[i,j] == 0:
+            if arr[i,j] != 0:
                 pixels.append((i,j))
     
     Lx=arr.shape[1]
