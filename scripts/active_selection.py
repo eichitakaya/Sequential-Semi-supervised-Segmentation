@@ -1,4 +1,5 @@
 import numpy as np
+from fractal_analysis import fractal_dimension
 
 def select_init(volume) -> np.ndarray:
     

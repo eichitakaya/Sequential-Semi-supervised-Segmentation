@@ -3,6 +3,8 @@ import numpy as np
 import torch
 import nibabel as nib
 import glob
+from fractal_analysis import fractal_dimension
+from PIL import Image
 
 class DatasetForSemi(torch.utils.data.Dataset):
     # input: データセット名（ex:heart, lung cancer, etc）
@@ -179,5 +181,9 @@ def axis_transpose(arr, z_axis):
         
     
 if __name__ == "__main__":
-    data = DataLoaderFor4s("heart")
-    print(data[1][0].shape, data[1][1].shape)
+    data = DataLoaderFor4S("heart")
+    img = Image.fromarray(np.uint8(data[0][0][0])).convert("L")
+    img.save("heart.png")
+    print(data[0][0][0].max(), data[0][0][0].min())
+    print(fractal_dimension(data[0][0][0]))
+    print(data[0][0].shape, data[0][1].shape)
