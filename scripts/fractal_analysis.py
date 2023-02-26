@@ -11,6 +11,8 @@ def otsu(arr):
 
 def fractal_dimension(arr):
     # 入力は2次元のグレースケール行列
+    if arr.ndim == 3:
+        arr = arr[0]
     arr = otsu(arr)
     # finding all the non-zero pixels
     #print(arr.max(), arr.min())
