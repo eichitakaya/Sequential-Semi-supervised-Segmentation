@@ -66,6 +66,8 @@ class DataLoaderFor4S:
         X, T = self.id_to_volumes(patient_id)
         #Xはウィンドウニング処理して8bitに変換
         X = volume_windowning(X)
+        X = np.expand_dims(X, 1)
+        T = np.expand_dims(T, 1)
         return X, T
 
 class GroupWiseSplit():
@@ -189,7 +191,12 @@ def volume_windowning(volume):
     volume = volume * scale # 0-255の範囲にリスケール
     volume = np.uint8(volume) # 符号なしバイトに変換
     return volume
-        
+
+def predict2img(predict):
+    mask = predict > 0.5
+    img = torch.zeros_like(predict)
+    img[mask] = 1
+    return img
     
 if __name__ == "__main__":
     data = DataLoaderFor4S("heart")
