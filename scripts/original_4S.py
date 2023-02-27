@@ -73,6 +73,7 @@ class SequentialSemiSupervisedSegmentation:
         self.n = self.X.shape[0] # 1症例におけるスライス枚数
         print(self.n)
         training_model = self.model
+        training_model = training_model.to("cuda")
         # 誤差関数の定義
         criterion = BCEDiceLoss()
         for i in range(self.n-self.M):#画像の枚数だけ繰り返し
