@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import random
 from fractal_analysis import fractal_dimension
 
 def select_init(volume) -> np.ndarray:
@@ -21,3 +22,16 @@ def calc_max_variance_group(volume, window_size):
     max_variance_group = list(range(max_var_index-(window_size-1), max_var_index+1))
     
     return max_variance_group
+
+def calc_max_mean_group(volume, window_size):
+    fractal_dimensions = calc_fractal_dimension_series(volume)
+    variance_series = fractal_dimensions.rolling(window_size).mean()
+    max_mean_index = variance_series.idxmax()
+    max_mean_group = list(range(max_mean_index-(window_size-1), max_mean_index+1))
+    
+    return max_mean_group
+
+def random_selection(n, window_size):
+    selected = random.randint(0, n-window_size)
+    random_selected_list = list(range(selected, selected+window_size))
+    return random_selected_list

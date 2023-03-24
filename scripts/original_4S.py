@@ -31,7 +31,7 @@ class SequentialSemiSupervisedSegmentation:
         self.reverse = reverse # 逆向きのラベル伝播を行う場合は1
         self.locally = locally # ラベル伝播が完璧である場合をシミュレートする
 
-        self.volumes = DataLoaderFor4S("heart")
+        self.volumes = DataLoaderFor4S("spleen")
 
         print("loaded dataset!")
         
@@ -105,6 +105,10 @@ class SequentialSemiSupervisedSegmentation:
                 
                 batch_x = train_x[perm[0:self.batch]] / 255
                 batch_t = train_t[perm[0:self.batch]]
+                
+                batch_x = batch_x.to("cuda")
+                batch_t = batch_t.to("cuda")
+                
                 predict = training_model(batch_x)
                 loss = criterion(predict, batch_t)
                 print(loss)
@@ -151,6 +155,8 @@ class SequentialSemiSupervisedSegmentation:
                 add_t = self.T[i+self.M-(self.batch-1):i+self.M+1]
                 add_x = torch.Tensor(add_x) / 255
                 add_t = torch.Tensor(add_t)
+                add_x = add_x.to("cuda")
+                add_t = add_t.to("cuda")
                 predict = training_model(add_x)
                 loss = criterion(predict, add_t)
                 #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
@@ -163,13 +169,13 @@ class SequentialSemiSupervisedSegmentation:
 
                 # add_tの最後のスライスを画像にして保存
                 print(self.T.shape)
-                self.output_t(raw=add_x[-1][0], target=self.T[i+self.M][0], predict=add_t[-1][0], patient_id=volume_id, slice_num=i+self.M+1)
+                self.output_t(raw=add_x[-1][0].cpu(), target=self.T[i+self.M][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=i+self.M+1)
                 #ここで再びcupyに変換しないとエラーを吐く
                 if self.supervise == 0:
                     if self.locally == 1:
                         print("a pseudo label was not added")
                     else:
-                        self.T[i+self.M] = add_t[-1] /255
+                        self.T[i+self.M] = add_t[-1].cpu() /255
             print(i+1)
 
 

@@ -1,5 +1,5 @@
 # parseで渡せるようにしたい．
-from anywhere_4S import SequentialSemiSupervisedSegmentation
+from original_4S import SequentialSemiSupervisedSegmentation
 import torch_networks as networks
 import argparse
 import csv

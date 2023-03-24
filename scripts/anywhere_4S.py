@@ -15,7 +15,7 @@ import csv
 from PIL import Image
 
 class SequentialSemiSupervisedSegmentation:
-    def __init__(self, model, repeat_num, raw_model="", lr=0.001, _lambda=0.0005, M=3, epoch=10, batch=3, gpu_id=-1, dataset_name=0, scratch=0, pp=1, save_dir="", supervise=0, reverse=0, locally=0):
+    def __init__(self, model, repeat_num, random_selection, raw_model="", lr=0.001, _lambda=0.0005, M=3, epoch=10, batch=3, gpu_id=-1, dataset_name=0, scratch=0, pp=1, save_dir="", supervise=0, reverse=0, locally=0):
         # M == batch
         self.gpu_id = gpu_id
 
@@ -31,6 +31,8 @@ class SequentialSemiSupervisedSegmentation:
         self.supervise = supervise # 半教師あり学習を行わない場合は1
         self.reverse = reverse # 逆向きのラベル伝播を行う場合は1
         self.locally = locally # ラベル伝播が完璧である場合をシミュレートする
+        
+        self.random_selection = random_selection
 
         self.volumes = DataLoaderFor4S("heart")
 
@@ -79,8 +81,13 @@ class SequentialSemiSupervisedSegmentation:
         self.criterion = BCEDiceLoss()
         
         # ここでselective annotation
-        selected_index = active_selection.calc_max_variance_group(self.X, self.M)[0]
-        print(f"selected {selected_index} / {self.n}")
+        if self.random_selection == 0:
+            selected_index = active_selection.calc_max_mean_group(self.X, self.M)[0]
+            print(f"Actively selected {self.M} slices!")
+        else:
+            selected_index = active_selection.random_selection(self.n, self.M)[0]
+            print(f"Randomly selected {self.M} slices!")
+        print(f"selected {selected_index} / {self.n}") # 12 / 58
         train_x = self.X[selected_index:selected_index+self.M]
         train_t = self.T[selected_index:selected_index+self.M]
         
@@ -125,11 +132,11 @@ class SequentialSemiSupervisedSegmentation:
         print("set optimizer!")
         
         # 最初の入力に使う１枚目の画像のindex
-        start_num = selected_index + 1 # 41
+        start_num = selected_index + 1 # 13
         end_num = self.n
         
         # 新たな１枚を前方に追加
-        add_x = self.X[start_num:start_num+self.M] # 41, 42, 43
+        add_x = self.X[start_num:start_num+self.M] # 13, 14, 15
         add_t = self.T[start_num:start_num+self.M]
         add_x = torch.Tensor(add_x) / 255
         add_t = torch.Tensor(add_t)
@@ -147,12 +154,12 @@ class SequentialSemiSupervisedSegmentation:
 
         # add_tの最後のスライスを画像にして保存
         
-        self.output_t(raw=add_x[-1][0].cpu(), target=self.T[selected_index+self.M][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=selected_index+self.M)
+        self.output_t(raw=add_x[-1][0].cpu(), target=self.T[selected_index+self.M-1][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=selected_index+self.M)
         if self.supervise == 0:
             if self.locally == 1:
                 print("a pseudo label was not added")
             else:
-                self.T[selected_index+self.M] = add_t[-1].cpu() /255
+                self.T[selected_index+self.M-1] = add_t[-1].cpu() /255
                 print(f"added {selected_index+self.M}th target!")
             
         for index, i in enumerate(range(start_num+1, end_num-self.M+1)):#前方に残された枚数だけ繰り返し
@@ -252,11 +259,11 @@ class SequentialSemiSupervisedSegmentation:
         self.optimizer = self.set_optimizer(self.model, self._lambda)
         print("set optimizer!")
         # 最初の入力に使う１枚目の画像のindex
-        start_num = selected_index - 1 # 39
+        start_num = selected_index - 1 # 11
         end_num = 0
         
         # 新たな１枚を前方に追加
-        add_x = self.X[start_num:start_num+self.M] # 39, 40, 41
+        add_x = self.X[start_num:start_num+self.M] # 11, 12, 13
         add_t = self.T[start_num:start_num+self.M]
         add_x = torch.Tensor(add_x) / 255
         add_t = torch.Tensor(add_t)
@@ -278,7 +285,7 @@ class SequentialSemiSupervisedSegmentation:
             if self.locally == 1:
                 print("a pseudo label was not added")
             else:
-                self.T[selected_index+self.M] = add_t[-1].cpu() /255
+                self.T[selected_index-1] = add_t[-1].cpu() /255
                 print(f"added {selected_index-1}th target!") # 39
         
         for index, i in enumerate(range(start_num-1, end_num-1, -1)):#後方に残された枚数だけ繰り返し
