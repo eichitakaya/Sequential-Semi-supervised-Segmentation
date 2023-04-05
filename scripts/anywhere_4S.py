@@ -114,11 +114,13 @@ class SequentialSemiSupervisedSegmentation:
         # いったんinitial modelを保存
         torch.save(training_model.state_dict(), '../model/initial_model.pth')
         
-        # 選択されたM枚より前方へのラベル伝播
-        self.forward_train(selected_index=selected_index, volume_id=volume_id)
+        # 選択されたM枚より前方へのラベル伝播（右端の場合は発動しない）
+        if selected_index != self.n-2:
+            self.forward_train(selected_index=selected_index, volume_id=volume_id)
         
-        # 選択されたM枚より後方へのラベル伝播
-        self.backward_train(selected_index=selected_index, volume_id=volume_id)
+        # 選択されたM枚より後方へのラベル伝播（左端の場合は発動しない）
+        if selected_index != 0:
+            self.backward_train(selected_index=selected_index, volume_id=volume_id)
         
             
     def forward_train(self, selected_index, volume_id):
