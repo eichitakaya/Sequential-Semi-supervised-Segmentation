@@ -55,7 +55,7 @@ class SequentialSemiSupervisedSegmentation:
         optimizer = optim.Adam(model.parameters(), lr=self.lr, weight_decay=_lambda)
         return optimizer
     
-    def output_t(self, raw, target, predict, patient_id, slice_num):
+    def output_t(self, raw, target, predict, patient_id, slice_num, folder_name):
         im_r = Image.fromarray(np.uint8(raw*255))
         im_t = Image.fromarray(np.uint8(target*255))
         im_p = Image.fromarray(np.uint8(predict*255))
@@ -63,12 +63,12 @@ class SequentialSemiSupervisedSegmentation:
         output.paste(im_r, (0, 0))
         output.paste(im_p, (im_r.width, 0))
         output.paste(im_t, (im_r.width*2, 0))
-        os.makedirs(f"../result/patient_{patient_id}/target", exist_ok=True)
-        os.makedirs(f"../result/patient_{patient_id}/predict", exist_ok=True)
-        os.makedirs(f"../result/patient_{patient_id}/raw_predict_target", exist_ok=True)
-        im_p.save(self.save_dir + "../result/" + f"patient_{patient_id}" + "/predict/" + "{0:03d}".format(slice_num) + ".png")
-        im_t.save(self.save_dir + "../result/" + f"patient_{patient_id}" + "/target/" + "{0:03d}".format(slice_num) + ".png")
-        output.save(self.save_dir + "../result/" + f"patient_{patient_id}" + "/raw_predict_target/" + "{0:03d}".format(slice_num) + ".png")
+        os.makedirs(f"../result/{folder_name}/patient_{patient_id}/target", exist_ok=True)
+        os.makedirs(f"../result/{folder_name}/patient_{patient_id}/predict", exist_ok=True)
+        os.makedirs(f"../result/{folder_name}/patient_{patient_id}/raw_predict_target", exist_ok=True)
+        im_p.save(f"../result/{folder_name}/" + f"patient_{patient_id}" + "/predict/" + "{0:03d}".format(slice_num) + ".png")
+        im_t.save(f"../result/{folder_name}/" + f"patient_{patient_id}" + "/target/" + "{0:03d}".format(slice_num) + ".png")
+        output.save(f"../result/{folder_name}/" + f"patient_{patient_id}" + "/raw_predict_target/" + "{0:03d}".format(slice_num) + ".png")
         print("saved output image!")
 
     def training(self, volume_id):
@@ -156,7 +156,7 @@ class SequentialSemiSupervisedSegmentation:
 
         # add_tの最後のスライスを画像にして保存
         
-        self.output_t(raw=add_x[-1][0].cpu(), target=self.T[selected_index+self.M-1][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=selected_index+self.M)
+        self.output_t(raw=add_x[-1][0].cpu(), target=self.T[selected_index+self.M-1][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=selected_index+self.M, folder_name=self.save_dir)
         if self.supervise == 0:
             if self.locally == 1:
                 print("a pseudo label was not added")
@@ -220,7 +220,7 @@ class SequentialSemiSupervisedSegmentation:
                                 add_t = pp.opening(add_t)
                                 print("post processed!")
                     # add_tを画像にして保存
-                    self.output_t(predict=add_t, patient_id=volume_id, slice_num=j+self.M+1)
+                    self.output_t(predict=add_t, patient_id=volume_id, slice_num=j+self.M+1, folder_name=self.save_dir)
                     
             else:
                 add_x = self.X[i:i+self.M]
@@ -242,7 +242,7 @@ class SequentialSemiSupervisedSegmentation:
                 #     print("post processed!")
 
                 # add_tの最後のスライスを画像にして保存
-                self.output_t(raw=add_x[-1][0].cpu(), target=self.T[i+self.M-1][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=i+self.M-1)
+                self.output_t(raw=add_x[-1][0].cpu(), target=self.T[i+self.M-1][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=i+self.M-1, folder_name=self.save_dir)
                 print(f"added {i+self.M-1}th target!")
                 #ここで再びcupyに変換しないとエラーを吐く
                 if self.supervise == 0:
@@ -282,7 +282,7 @@ class SequentialSemiSupervisedSegmentation:
         #     print("post processed!")
 
         # add_tの最後のスライスを画像にして保存
-        self.output_t(raw=add_x[0][0].cpu(), target=self.T[selected_index-1][0], predict=add_t[0][0].cpu(), patient_id=volume_id, slice_num=selected_index-1)
+        self.output_t(raw=add_x[0][0].cpu(), target=self.T[selected_index-1][0], predict=add_t[0][0].cpu(), patient_id=volume_id, slice_num=selected_index-1, folder_name=self.save_dir)
         if self.supervise == 0:
             if self.locally == 1:
                 print("a pseudo label was not added")
@@ -344,7 +344,7 @@ class SequentialSemiSupervisedSegmentation:
                                 add_t = pp.opening(add_t)
                                 print("post processed!")
                     # add_tを画像にして保存
-                    self.output_t(predict=add_t, patient_id=volume_id, slice_num=j+self.M+1)
+                    self.output_t(predict=add_t, patient_id=volume_id, slice_num=j+self.M+1, folder_name=self.save_dir)
                     
             else:
                 add_x = self.X[i:i+self.M]
@@ -364,7 +364,7 @@ class SequentialSemiSupervisedSegmentation:
                 #     print("post processed!")
 
                 # add_tの最後のスライスを画像にして保存
-                self.output_t(raw=add_x[0][0].cpu(), target=self.T[i][0], predict=add_t[0][0].cpu(), patient_id=volume_id, slice_num=i)
+                self.output_t(raw=add_x[0][0].cpu(), target=self.T[i][0], predict=add_t[0][0].cpu(), patient_id=volume_id, slice_num=i, folder_name=self.save_dir)
                 print(f"added {i}th target!")
                 #ここで再びcupyに変換しないとエラーを吐く
                 if self.supervise == 0:
