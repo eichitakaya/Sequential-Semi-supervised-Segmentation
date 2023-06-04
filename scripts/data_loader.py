@@ -171,7 +171,7 @@ class Decathlon(torch.utils.data.Dataset):
 
 def get_dataset_name(name):
     # hippocampusは後でちゃんと確認
-    name_path_dict = {"hippocampus":["/takaya_workspace/Medical_AI/data/decathlon/Task04_Hippocampus/imagesTr/", 1],
+    name_path_dict = {"hippocampus":["/takaya_workspace/Medical_AI/data/decathlon/Task04_Hippocampus/imagesTr/", 2],
                       "heart":["/takaya_workspace/Medical_AI/data/decathlon/Task02_Heart/imagesTr/", 2],
                       "spleen":["/takaya_workspace/Medical_AI/data/decathlon/Task09_Spleen/imagesTr/", 2]}
     return name_path_dict[name]
@@ -199,7 +199,8 @@ def predict2img(predict):
     return img
     
 if __name__ == "__main__":
-    data = DataLoaderFor4S("heart")
-    img = Image.fromarray(np.uint8(data[0][0][0])).convert("L")
-    img.save("heart.png")
+    data = DataLoaderFor4S("spleen")
+    print(data[3][1][0][0].max())
+    img = Image.fromarray(np.uint8(data[3][0][0][0])*255).convert("L")
+    img.save("spleen.png")
     print(calc_max_variance_group(data[1][0], 3))

@@ -1,5 +1,5 @@
-# parseで渡せるようにしたい．
-from anywhere_4S_dev import SequentialSemiSupervisedSegmentation
+# extended 4S, 4S, randomを順に実行する．
+from anywhere_4S import SequentialSemiSupervisedSegmentation
 import torch_networks as networks
 import argparse
 import csv
@@ -7,7 +7,6 @@ import os
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--dataset", type=str, default="heart")
 parser.add_argument("--gpu_id", type=int, default=-1)
 parser.add_argument("--lr", type=float, default=0.001)
 parser.add_argument("--_lambda", type=float, default=0.0005)
@@ -31,10 +30,8 @@ parser.add_argument("--locally", type=int, default=0)
 
 args = parser.parse_args()
 
-
 iou_list = []
-for i in range(20):# 症例数だけ繰り返し 
-    model = networks.UNet()   
-    learn = SequentialSemiSupervisedSegmentation(dataset=args.dataset, model=model, repeat_num=1, random_selection=args.random, gpu_id=args.gpu_id, lr=args.lr, _lambda=args._lambda, M=args.M, epoch=args.epoch, batch=args.batch, scratch=args.scratch, pp=args.pp, save_dir=args.dataset, supervise=args.only_supervise, reverse=args.reverse, locally=args.locally)
-
+for i in range(20):# 症例数だけ繰り返し
+    model = networks.UNet()    
+    learn = SequentialSemiSupervisedSegmentation(model, 1, args.random, gpu_id=args.gpu_id, lr=args.lr, _lambda=args._lambda, M=args.M, epoch=args.epoch, batch=args.batch, scratch=args.scratch, pp=args.pp, save_dir=args.save_dir, supervise=args.only_supervise, reverse=args.reverse, locally=args.locally)
     learn.training(i)

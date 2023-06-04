@@ -15,7 +15,7 @@ import csv
 from PIL import Image
 
 class SequentialSemiSupervisedSegmentation:
-    def __init__(self, model, repeat_num, random_selection, raw_model="", lr=0.001, _lambda=0.0005, M=3, epoch=10, batch=3, gpu_id=-1, dataset_name=0, scratch=0, pp=1, save_dir="", supervise=0, reverse=0, locally=0):
+    def __init__(self, dataset, model, repeat_num, random_selection, raw_model="", lr=0.001, _lambda=0.0005, M=3, epoch=10, batch=3, gpu_id=-1, dataset_name=0, scratch=0, pp=1, save_dir="", supervise=0, reverse=0, locally=0):
         # M == batch
         self.gpu_id = gpu_id
 
@@ -34,7 +34,8 @@ class SequentialSemiSupervisedSegmentation:
         
         self.random_selection = random_selection
 
-        self.volumes = DataLoaderFor4S("heart")
+        self.dataset = dataset
+        self.volumes = DataLoaderFor4S(self.dataset)
 
         print("loaded dataset!")
         
@@ -138,14 +139,15 @@ class SequentialSemiSupervisedSegmentation:
         end_num = self.n
         
         # 新たな１枚を前方に追加
-        add_x = self.X[start_num:start_num+self.M] # 13, 14, 15
+        add_x = self.X[start_num+self.M] # 13, 14, 15
         add_t = self.T[start_num:start_num+self.M]
+        # 次元を増やす
+        add_x = np.expand_dims(add_x, axis=0)
         add_x = torch.Tensor(add_x) / 255
-        add_t = torch.Tensor(add_t)
         add_x = add_x.to("cuda")
-        add_t = add_t.to("cuda")
+        print(add_x.shape)
         predict = training_model(add_x)
-        loss = self.criterion(predict, add_t)
+        #loss = self.criterion(predict, add_t)
         #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
         add_t = predict2img(predict)
         #ここに後処理
