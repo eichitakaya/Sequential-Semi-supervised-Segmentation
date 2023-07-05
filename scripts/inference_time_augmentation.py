@@ -3,9 +3,10 @@
 imageはtensor型のまま扱いたい
 
 input: model, image
-output: 10枚の推論結果の平均
+output: 11枚の推論結果の平均
 
 augmentationの種類
+0. なし
 1. vertical flip
 2. horizontal flip
 3. 90 degree rotation
@@ -23,8 +24,7 @@ import numpy as np
 import cv2
 import torch_networks as networks
 
-def test_time_augmentation(model, image_tensor):
-    return
+
 
 def vertical_flip(model, image_tensor):
     # 左右反転し，推論
@@ -40,7 +40,36 @@ def horizontal_flip(model, image_tensor):
     # 推論結果をさらに反転
     return predict.flip(2)
 
+def inference_time_augmentation(model, image_tensor, method="average"):
+    """_summary_
 
+    Args:
+        model (_type_): 任意のsegmentationモデル
+        image_tensor (_type_): (1,1,H,W)のtensor
+        method (_type_): "vote", "average"
+    """
+    # 3枚の推論結果を格納するリスト
+    predict_list = []
+    # そのままの画像を推論
+    predict_list.append(model(image_tensor))
+    # 画像を左右反転したものを推論
+    predict_list.append(horizontal_flip(model, image_tensor))
+    # 画像を上下反転したものを推論
+    predict_list.append(vertical_flip(model, image_tensor))
+    
+    # 3枚の推論結果の平均を取る
+    if method == "average":
+        predict = torch.mean(torch.stack(predict_list), dim=0)
+        
+    # 3枚の推論結果の多数決を取る
+    elif method == "vote":
+        # 3枚の推論結果を0,1に変換
+        predict_list = [torch.where(predict_list[0] > 0.5, torch.tensor(1).to("cuda"), torch.tensor(0).to("cuda")),
+                        torch.where(predict_list[1] > 0.5, torch.tensor(1).to("cuda"), torch.tensor(0).to("cuda")),
+                        torch.where(predict_list[2] > 0.5, torch.tensor(1).to("cuda"), torch.tensor(0).to("cuda"))]
+        # 3枚の推論結果の多数決を取る
+        predict = torch.mode(torch.stack(predict_list), dim=0).values
+    return predict
 
 # 以下，テスト用
 if __name__ == "__main__":
@@ -55,7 +84,7 @@ if __name__ == "__main__":
     image = image.unsqueeze(0)
     image = image.unsqueeze(0)
     
-    result = horizontal_flip(model, image)
+    result = inference_time_augmentation(model, image, method="vote")
     
     # resultを画像として保存
     result = result.detach().numpy()
