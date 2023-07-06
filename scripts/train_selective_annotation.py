@@ -16,7 +16,6 @@ parser.add_argument("--random", type=int, default=0)
 parser.add_argument("--n", type=int, default=3)
 parser.add_argument("--M", type=int, default=3)
 parser.add_argument("--epoch", type=int, default=3)
-parser.add_argument("--semi_epoch", type=int, default=0)
 parser.add_argument("--batch", type=int, default=3)
 parser.add_argument("--dataset_num", type=int, default=0)
 parser.add_argument("--scratch", type=int, default=0)
@@ -28,7 +27,7 @@ parser.add_argument("--only_supervise", type=int, default=0)
 parser.add_argument("--reverse", type=int, default=0)
 parser.add_argument("--locally", type=int, default=0)
 parser.add_argument("--ita", type=int, default=0)
-
+parser.add_argument("--epoch_decay", type=int, default=0)
 
 args = parser.parse_args()
 
@@ -36,6 +35,23 @@ args = parser.parse_args()
 iou_list = []
 for i in range(20):# 症例数だけ繰り返し 
     model = networks.UNet()   
-    learn = SequentialSemiSupervisedSegmentation(dataset=args.dataset, model=model, repeat_num=1, random_selection=args.random, gpu_id=args.gpu_id, lr=args.lr, _lambda=args._lambda, M=args.M, epoch=args.epoch, batch=args.batch, scratch=args.scratch, pp=args.pp, save_dir=args.dataset, supervise=args.only_supervise, reverse=args.reverse, locally=args.locally, ita=args.ita)
+    learn = SequentialSemiSupervisedSegmentation(dataset=args.dataset,
+                                                 model=model, 
+                                                 repeat_num=1, 
+                                                 random_selection=args.random, 
+                                                 gpu_id=args.gpu_id, 
+                                                 lr=args.lr, 
+                                                 _lambda=args._lambda, 
+                                                 M=args.M, 
+                                                 epoch=args.epoch, 
+                                                 batch=args.batch, 
+                                                 scratch=args.scratch, 
+                                                 pp=args.pp, 
+                                                 save_dir=args.dataset, 
+                                                 supervise=args.only_supervise, 
+                                                 reverse=args.reverse, 
+                                                 locally=args.locally, 
+                                                 ita=args.ita, 
+                                                 epoch_decay=args.epoch_decay)
 
     learn.training(i)

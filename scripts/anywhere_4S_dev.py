@@ -17,7 +17,7 @@ import csv
 from PIL import Image
 
 class SequentialSemiSupervisedSegmentation:
-    def __init__(self, dataset, model, repeat_num, random_selection, raw_model="", lr=0.001, _lambda=0.0005, M=3, epoch=10, batch=3, gpu_id=-1, dataset_name=0, scratch=0, pp=1, save_dir="", supervise=0, reverse=0, locally=0, ita=0):
+    def __init__(self, dataset, model, repeat_num, random_selection, raw_model="", lr=0.001, _lambda=0.0005, M=3, epoch=10, batch=3, gpu_id=-1, dataset_name=0, scratch=0, pp=1, save_dir="", supervise=0, reverse=0, locally=0, ita=0, epoch_decay=0):
         # M == batch
         self.gpu_id = gpu_id
 
@@ -39,6 +39,7 @@ class SequentialSemiSupervisedSegmentation:
 
         self.dataset = dataset
         self.volumes = DataLoaderFor4S(self.dataset)
+        self.epoch_decay = epoch_decay
 
         print("loaded dataset!")
         
@@ -175,8 +176,13 @@ class SequentialSemiSupervisedSegmentation:
             #xとtをTensorに変換
             train_x = torch.Tensor(train_x).float()
             train_t = torch.Tensor(train_t).float()
-            epoch_i = int(self.epoch * ((1/2)**((index+1))))
-            for epoch in range(max(epoch_i, math.ceil(self.epoch / 100))):        
+            # epoch_decayが1の場合は，epochを1/2ずつ減らしていく
+            if self.epoch_decay == 1:
+                epoch_i = int(self.epoch * ((1/2)**((index+1))))
+                epoch_i = max(epoch_i, math.ceil(self.epoch / 100))
+            else:
+                epoch_i = self.epoch
+            for epoch in range(epoch_i):        
                 # batch != Mの場合については別途考える必要あり        
                 perm = np.random.permutation(self.M)
                 
@@ -277,8 +283,15 @@ class SequentialSemiSupervisedSegmentation:
             #xとtをTensorに変換
             train_x = torch.Tensor(train_x).float()
             train_t = torch.Tensor(train_t).float()
-            epoch_i = int(self.epoch * ((1/2)**((index+1))))
-            for epoch in range(max(epoch_i, math.ceil(self.epoch / 100))):        
+            
+            # epoch_decayが1の場合は，epochを1/2ずつ減らしていく
+            if self.epoch_decay == 1:
+                epoch_i = int(self.epoch * ((1/2)**((index+1))))
+                epoch_i = max(epoch_i, math.ceil(self.epoch / 100))
+            else:
+                epoch_i = self.epoch
+                
+            for epoch in range(epoch_i):        
                 # batch != Mの場合については別途考える必要あり        
                 perm = np.random.permutation(self.M)
                 
