@@ -40,7 +40,7 @@ def horizontal_flip(model, image_tensor):
     # 推論結果をさらに反転
     return predict.flip(2)
 
-def inference_time_augmentation(model, image_tensor, method="average"):
+def inference_time_augmentation(model, image_tensor, method="vote"):
     """_summary_
 
     Args:

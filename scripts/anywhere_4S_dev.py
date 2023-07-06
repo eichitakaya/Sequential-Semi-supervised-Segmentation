@@ -3,7 +3,7 @@ import math
 import active_selection
 from data_loader import DataLoaderFor4S, predict2img
 from inference_time_augmentation import inference_time_augmentation
-#from augmentation import augmentation
+from augmentation import augmentation
 import torch_networks as networks
 from torch_loss_functions import BCEDiceLoss
 from torch import optim
@@ -105,9 +105,12 @@ class SequentialSemiSupervisedSegmentation:
             batch_x = train_x[perm[0:self.batch]] / 255
             batch_t = train_t[perm[0:self.batch]]
             
+            # ここでaugmentation
+            batch_x, batch_t = augmentation(batch_x, batch_t)
+            
             batch_x = batch_x.to("cuda")
             batch_t = batch_t.to("cuda")
-            
+                        
             predict = training_model(batch_x)
             loss = self.criterion(predict, batch_t)
             print(loss)
@@ -180,8 +183,13 @@ class SequentialSemiSupervisedSegmentation:
                 batch_x = train_x[perm[0:self.batch]] / 255
                 batch_t = train_t[perm[0:self.batch]]
                 
+                # ここでaugmentation
+                batch_x, batch_t = augmentation(batch_x, batch_t)
+                
                 batch_x = batch_x.to("cuda")
                 batch_t = batch_t.to("cuda")
+                
+                
                 
                 predict = training_model(batch_x)
                 loss = self.criterion(predict, batch_t)
@@ -202,7 +210,7 @@ class SequentialSemiSupervisedSegmentation:
                 predict = inference_time_augmentation(training_model, add_x)
             else:
                 predict = training_model(add_x)
-            loss = self.criterion(predict, add_t)
+            #loss = self.criterion(predict, add_t)
             #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
             add_t = predict2img(predict)
             #ここに後処理
@@ -245,7 +253,7 @@ class SequentialSemiSupervisedSegmentation:
             predict = inference_time_augmentation(training_model, add_x)
         else:
             predict = training_model(add_x)
-        loss = self.criterion(predict, add_t)
+        #loss = self.criterion(predict, add_t)
         #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
         add_t = predict2img(predict)
         #ここに後処理
@@ -276,6 +284,8 @@ class SequentialSemiSupervisedSegmentation:
                 
                 batch_x = train_x[perm[0:self.batch]] / 255
                 batch_t = train_t[perm[0:self.batch]]
+                # ここでaugmentation
+                batch_x, batch_t = augmentation(batch_x, batch_t)
                 batch_x = batch_x.to("cuda")
                 batch_t = batch_t.to("cuda")
                 predict = training_model(batch_x)
@@ -330,7 +340,7 @@ class SequentialSemiSupervisedSegmentation:
                     predict = inference_time_augmentation(training_model, add_x)
                 else:
                     predict = training_model(add_x)
-                loss = self.criterion(predict, add_t)
+                #loss = self.criterion(predict, add_t)
                 #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
                 add_t = predict2img(predict)
                 #ここに後処理
