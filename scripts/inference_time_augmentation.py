@@ -40,7 +40,7 @@ def horizontal_flip(model, image_tensor):
     # 推論結果をさらに反転
     return predict.flip(2)
 
-def inference_time_augmentation(model, image_tensor, method="vote"):
+def inference_time_augmentation(model, image_tensor, device, method="vote"):
     """_summary_
 
     Args:
@@ -64,9 +64,9 @@ def inference_time_augmentation(model, image_tensor, method="vote"):
     # 3枚の推論結果の多数決を取る
     elif method == "vote":
         # 3枚の推論結果を0,1に変換
-        predict_list = [torch.where(predict_list[0] > 0.5, torch.tensor(1).to("cuda"), torch.tensor(0).to("cuda")),
-                        torch.where(predict_list[1] > 0.5, torch.tensor(1).to("cuda"), torch.tensor(0).to("cuda")),
-                        torch.where(predict_list[2] > 0.5, torch.tensor(1).to("cuda"), torch.tensor(0).to("cuda"))]
+        predict_list = [torch.where(predict_list[0] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
+                        torch.where(predict_list[1] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
+                        torch.where(predict_list[2] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device))]
         # 3枚の推論結果の多数決を取る
         predict = torch.mode(torch.stack(predict_list), dim=0).values
     return predict

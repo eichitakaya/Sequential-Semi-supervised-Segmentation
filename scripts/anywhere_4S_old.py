@@ -2,8 +2,6 @@ import os
 import math
 import active_selection
 from data_loader import DataLoaderFor4S, predict2img
-from inference_time_augmentation import inference_time_augmentation
-from augmentation import augmentation
 import torch_networks as networks
 from torch_loss_functions import BCEDiceLoss
 from torch import optim
@@ -17,7 +15,7 @@ import csv
 from PIL import Image
 
 class SequentialSemiSupervisedSegmentation:
-    def __init__(self, dataset, model, repeat_num, random_selection, raw_model="", lr=0.001, _lambda=0.0005, M=3, epoch=10, batch=3, gpu_id=-1, dataset_name=0, scratch=0, pp=1, save_dir="", supervise=0, reverse=0, locally=0, ita=0, epoch_decay=0):
+    def __init__(self, model, repeat_num, random_selection, raw_model="", lr=0.001, _lambda=0.0005, M=3, epoch=10, batch=3, gpu_id=-1, dataset_name=0, scratch=0, pp=1, save_dir="", supervise=0, reverse=0, locally=0):
         # M == batch
         self.gpu_id = gpu_id
 
@@ -33,13 +31,10 @@ class SequentialSemiSupervisedSegmentation:
         self.supervise = supervise # 半教師あり学習を行わない場合は1
         self.reverse = reverse # 逆向きのラベル伝播を行う場合は1
         self.locally = locally # ラベル伝播が完璧である場合をシミュレートする
-        self.ita = ita # 推論時にデータ拡張を行う場合は1
         
         self.random_selection = random_selection
 
-        self.dataset = dataset
-        self.volumes = DataLoaderFor4S(self.dataset)
-        self.epoch_decay = epoch_decay
+        self.volumes = DataLoaderFor4S("heart")
 
         print("loaded dataset!")
         
@@ -92,8 +87,8 @@ class SequentialSemiSupervisedSegmentation:
         else:
             selected_index = active_selection.random_selection(self.n, self.M)[0]
             print(f"Randomly selected {self.M} slices!")
-        print(f"selected {selected_index+1} / {self.n}") # 1始まりで，15 / 17
-        train_x = self.X[selected_index:selected_index+self.M] # 0始まりで14, 15, 16
+        print(f"selected {selected_index} / {self.n}") # 12 / 58
+        train_x = self.X[selected_index:selected_index+self.M]
         train_t = self.T[selected_index:selected_index+self.M]
         
         # initial train
@@ -106,12 +101,9 @@ class SequentialSemiSupervisedSegmentation:
             batch_x = train_x[perm[0:self.batch]] / 255
             batch_t = train_t[perm[0:self.batch]]
             
-            # ここでaugmentation
-            batch_x, batch_t = augmentation(batch_x, batch_t)
-            
             batch_x = batch_x.to("cuda")
             batch_t = batch_t.to("cuda")
-                        
+            
             predict = training_model(batch_x)
             loss = self.criterion(predict, batch_t)
             print(loss)
@@ -123,7 +115,7 @@ class SequentialSemiSupervisedSegmentation:
         torch.save(training_model.state_dict(), '../model/initial_model.pth')
         
         # 選択されたM枚より前方へのラベル伝播（右端の場合は発動しない）
-        if selected_index+self.M != self.n:
+        if selected_index != self.n-2:
             self.forward_train(selected_index=selected_index, volume_id=volume_id)
         
         # 選択されたM枚より後方へのラベル伝播（左端の場合は発動しない）
@@ -141,18 +133,19 @@ class SequentialSemiSupervisedSegmentation:
         self.optimizer = self.set_optimizer(self.model, self._lambda)
         print("set optimizer!")
         
+        # 最初の入力に使う１枚目の画像のindex
+        start_num = selected_index + 1 # 13
+        end_num = self.n
+        
         # 新たな１枚を前方に追加
-        add_x = self.X[selected_index+self.M] # 17 
-        # 次元を増やす
-        add_x = np.expand_dims(add_x, axis=0)
+        add_x = self.X[start_num:start_num+self.M] # 13, 14, 15
+        add_t = self.T[start_num:start_num+self.M]
         add_x = torch.Tensor(add_x) / 255
+        add_t = torch.Tensor(add_t)
         add_x = add_x.to("cuda")
-        print(add_x.shape)
-        if self.ita == 1:
-            predict = inference_time_augmentation(training_model, add_x)
-        else:
-            predict = training_model(add_x)
-        #loss = self.criterion(predict, add_t)
+        add_t = add_t.to("cuda")
+        predict = training_model(add_x)
+        loss = self.criterion(predict, add_t)
         #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
         add_t = predict2img(predict)
         #ここに後処理
@@ -161,42 +154,33 @@ class SequentialSemiSupervisedSegmentation:
         #     add_t = pp.opening(add_t)
         #     print("post processed!")
 
-        # add_tの最後のスライスを画像にして保存    
-        self.output_t(raw=add_x[0][0].cpu(), target=self.T[selected_index+self.M][0], predict=add_t[0][0].cpu(), patient_id=volume_id, slice_num=selected_index+self.M, folder_name=self.save_dir)
+        # add_tの最後のスライスを画像にして保存
+        
+        self.output_t(raw=add_x[-1][0].cpu(), target=self.T[selected_index+self.M-1][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=selected_index+self.M, folder_name=self.save_dir)
         if self.supervise == 0:
             if self.locally == 1:
                 print("a pseudo label was not added")
             else:
-                self.T[selected_index+self.M] = add_t[0].cpu() /255
-                print(f"added {selected_index+self.M+1}th target!")
-        # 直前の追加スライスが最後であった場合，ループ回数は0になる  
-        for index, i in enumerate(range(selected_index+1, self.n-self.M)):#前方に残された枚数だけ繰り返し
+                self.T[selected_index+self.M-1] = add_t[-1].cpu() /255
+                print(f"added {selected_index+self.M}th target!")
+            
+        for index, i in enumerate(range(start_num+1, end_num-self.M+1)):#前方に残された枚数だけ繰り返し
             train_x = self.X[i:i+self.M]
             train_t = self.T[i:i+self.M]
             #xとtをTensorに変換
             train_x = torch.Tensor(train_x).float()
             train_t = torch.Tensor(train_t).float()
-            # epoch_decayが1の場合は，epochを1/2ずつ減らしていく
-            if self.epoch_decay == 1:
-                epoch_i = int(self.epoch * ((1/2)**((index+1))))
-                epoch_i = max(epoch_i, math.ceil(self.epoch / 100))
-            else:
-                epoch_i = self.epoch
-            for epoch in range(epoch_i):        
+            epoch_i = int(self.epoch * ((1/2)**((index+1))))
+            for epoch in range(max(epoch_i, math.ceil(self.epoch / 100))):        
                 # batch != Mの場合については別途考える必要あり        
                 perm = np.random.permutation(self.M)
                 
                 batch_x = train_x[perm[0:self.batch]] / 255
                 batch_t = train_t[perm[0:self.batch]]
                 
-                # ここでaugmentation
-                batch_x, batch_t = augmentation(batch_x, batch_t)
-                
                 batch_x = batch_x.to("cuda")
                 batch_t = batch_t.to("cuda")
-                
-                
-                
+            
                 predict = training_model(batch_x)
                 loss = self.criterion(predict, batch_t)
                 print(loss)
@@ -204,36 +188,68 @@ class SequentialSemiSupervisedSegmentation:
                 loss.backward()
                 self.optimizer.step()
             
-            # 未知のスライスを推論して追加
-            # iが最後のスライスであった場合，追加は発動しない
-            add_x = self.X[i+self.M]
-            add_x = np.expand_dims(add_x, axis=0)
-            add_x = torch.Tensor(add_x) / 255
-            
-            add_x = add_x.to("cuda")
-            
-            if self.ita == 1:
-                predict = inference_time_augmentation(training_model, add_x)
+            #推論でもバッチサイズの数だけ入力する必要がある．2以上の場合，最後の一つを未知とする．
+            #ミニバッチ３枚のうち，最後が未知になるように調整する．
+            #n=1のとき，学習せずに最後まで繰り返す．
+            if self.n == 1:
+                if self.dataset_num == 1:
+                    data_n = 30
+                if self.dataset_num == 0:
+                    data_n = 100
+                if self.dataset_num == 2 or self.dataset_num == 3:
+                    data_n = 92
+                for j in range(data_n - self.batch):
+                    predict, loss = training_model(self.X[j+self.M-(self.batch-1):j+self.M+1], self.T[j+self.M-(self.batch-1):j+self.M+1])
+                    with cupy.cuda.Device(self.gpu_id):
+                        if self.dataset_num == 0:
+                            add_t = DCN.DCN_output(inference=predict, batchsize=self.batch, p=0.5, ant=True, gpu_id=self.gpu_id)
+                            if self.pp == 1:
+                                add_t = chainer.cuda.to_cpu(add_t)
+                                add_t = pp.opening(add_t)
+                                print("post processed!")
+                        if self.dataset_num == 1:
+                            add_t = DCN.DCN_output(inference=predict, batchsize=self.batch, p=0.5, ant=True, gpu_id=self.gpu_id)
+                            if self.pp == 1:
+                                add_t = chainer.cuda.to_cpu(add_t)
+                                add_t = pp.opening(add_t)
+                                print("post processed!")
+                        if self.dataset_num == 2 or self.dataset_num == 3:
+                            add_t = DCN.DCN_output(inference=predict, batchsize=self.batch, p=0.5, ant=True, gpu_id=self.gpu_id)
+                            if self.pp == 1:
+                                add_t = chainer.cuda.to_cpu(add_t)
+                                add_t = pp.opening(add_t)
+                                print("post processed!")
+                    # add_tを画像にして保存
+                    self.output_t(predict=add_t, patient_id=volume_id, slice_num=j+self.M+1, folder_name=self.save_dir)
+                    
             else:
+                add_x = self.X[i:i+self.M]
+                add_t = self.T[i:i+self.M]
+                add_x = torch.Tensor(add_x) / 255
+                add_t = torch.Tensor(add_t)
+                
+                add_x = add_x.to("cuda")
+                add_t = add_t.to("cuda")
+                
                 predict = training_model(add_x)
-            #loss = self.criterion(predict, add_t)
-            #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
-            add_t = predict2img(predict)
-            #ここに後処理
-            # if self.pp == 1:
-            #     add_t = chainer.cuda.to_cpu(add_t)
-            #     add_t = pp.opening(add_t)
-            #     print("post processed!")
+                loss = self.criterion(predict, add_t)
+                #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
+                add_t = predict2img(predict)
+                #ここに後処理
+                # if self.pp == 1:
+                #     add_t = chainer.cuda.to_cpu(add_t)
+                #     add_t = pp.opening(add_t)
+                #     print("post processed!")
 
-            # add_tの最後のスライスを画像にして保存
-            self.output_t(raw=add_x[0][0].cpu(), target=self.T[i+self.M][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=i+self.M, folder_name=self.save_dir)
-            print(f"added {i+self.M+1}th target!")
-            #ここで再びcupyに変換しないとエラーを吐く
-            if self.supervise == 0:
-                if self.locally == 1:
-                    print("a pseudo label was not added")
-                else:
-                    self.T[i] = add_t[-1].cpu() /255
+                # add_tの最後のスライスを画像にして保存
+                self.output_t(raw=add_x[-1][0].cpu(), target=self.T[i+self.M-1][0], predict=add_t[-1][0].cpu(), patient_id=volume_id, slice_num=i+self.M-1, folder_name=self.save_dir)
+                print(f"added {i+self.M-1}th target!")
+                #ここで再びcupyに変換しないとエラーを吐く
+                if self.supervise == 0:
+                    if self.locally == 1:
+                        print("a pseudo label was not added")
+                    else:
+                        self.T[i] = add_t[-1].cpu() /255
     
     def backward_train(self, selected_index, volume_id):
         print("Start backward process!")
@@ -255,11 +271,8 @@ class SequentialSemiSupervisedSegmentation:
         add_t = torch.Tensor(add_t)
         add_x = add_x.to("cuda")
         add_t = add_t.to("cuda")
-        if self.ita == 1:
-            predict = inference_time_augmentation(training_model, add_x)
-        else:
-            predict = training_model(add_x)
-        #loss = self.criterion(predict, add_t)
+        predict = training_model(add_x)
+        loss = self.criterion(predict, add_t)
         #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
         add_t = predict2img(predict)
         #ここに後処理
@@ -275,7 +288,7 @@ class SequentialSemiSupervisedSegmentation:
                 print("a pseudo label was not added")
             else:
                 self.T[selected_index-1] = add_t[-1].cpu() /255
-                print(f"added {selected_index}th target!") # 39
+                print(f"added {selected_index-1}th target!") # 39
         
         for index, i in enumerate(range(start_num-1, end_num-1, -1)):#後方に残された枚数だけ繰り返し
             train_x = self.X[i:i+self.M]# 38, 39, 40
@@ -283,22 +296,13 @@ class SequentialSemiSupervisedSegmentation:
             #xとtをTensorに変換
             train_x = torch.Tensor(train_x).float()
             train_t = torch.Tensor(train_t).float()
-            
-            # epoch_decayが1の場合は，epochを1/2ずつ減らしていく
-            if self.epoch_decay == 1:
-                epoch_i = int(self.epoch * ((1/2)**((index+1))))
-                epoch_i = max(epoch_i, math.ceil(self.epoch / 100))
-            else:
-                epoch_i = self.epoch
-                
-            for epoch in range(epoch_i):        
+            epoch_i = int(self.epoch * ((1/2)**((index+1))))
+            for epoch in range(max(epoch_i, math.ceil(self.epoch / 100))):        
                 # batch != Mの場合については別途考える必要あり        
                 perm = np.random.permutation(self.M)
                 
                 batch_x = train_x[perm[0:self.batch]] / 255
                 batch_t = train_t[perm[0:self.batch]]
-                # ここでaugmentation
-                batch_x, batch_t = augmentation(batch_x, batch_t)
                 batch_x = batch_x.to("cuda")
                 batch_t = batch_t.to("cuda")
                 predict = training_model(batch_x)
@@ -349,11 +353,8 @@ class SequentialSemiSupervisedSegmentation:
                 add_t = torch.Tensor(add_t)
                 add_x = add_x.to("cuda")
                 add_t = add_t.to("cuda")
-                if self.ita == 1:
-                    predict = inference_time_augmentation(training_model, add_x)
-                else:
-                    predict = training_model(add_x)
-                #loss = self.criterion(predict, add_t)
+                predict = training_model(add_x)
+                loss = self.criterion(predict, add_t)
                 #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
                 add_t = predict2img(predict)
                 #ここに後処理
@@ -364,7 +365,7 @@ class SequentialSemiSupervisedSegmentation:
 
                 # add_tの最後のスライスを画像にして保存
                 self.output_t(raw=add_x[0][0].cpu(), target=self.T[i][0], predict=add_t[0][0].cpu(), patient_id=volume_id, slice_num=i, folder_name=self.save_dir)
-                print(f"added {i+1}th target!")
+                print(f"added {i}th target!")
                 #ここで再びcupyに変換しないとエラーを吐く
                 if self.supervise == 0:
                     if self.locally == 1:

@@ -23,28 +23,46 @@ def calc_all(tp, pp):
     return presicion, recall, dice, iou
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--folder_name", type=str)
-args = parser.parse_args()
+def evaluation(folder_name):
 
-patients = glob.glob(f"../result/{args.folder_name}/*")
+    patients = glob.glob(f"../result/{folder_name}/patient*")
 
-dice_frame = []
+    dice_frame = []
 
-for patient in patients:
-    predicts = glob.glob(patient + "/predict/*")
-    dice_list = []
-    for img_path in predicts:
-        pp = np.array(Image.open(img_path))
-        tp = np.array(Image.open(img_path.replace("predict", "target")))
-        dice = calc_all(tp, pp)[2]
-        dice_list.append(dice)
-    dice_frame.append(dice_list)
+    for patient in patients:
+        predicts = glob.glob(patient + "/predict/*")
+        dice_list = []
+        for img_path in predicts:
+            pp = np.array(Image.open(img_path))
+            tp = np.array(Image.open(img_path.replace("predict", "target")))
+            dice = calc_all(tp, pp)[2]
+            dice_list.append(dice)
+        dice_frame.append(dice_list)
 
-index = []
-for patient in patients:
-    index.append(patient.split("/")[-1])
+    index = []
+    for patient in patients:
+        index.append(patient.split("/")[-1])
+        
+    dice_df = pd.DataFrame(dice_frame, index=index)
     
-dice_df = pd.DataFrame(dice_frame, index=index)
+    # dice_dfを行毎に平均，標準偏差，最大値，最小値を計算
+    dice_df["mean"] = dice_df.mean(axis=1)
+    dice_df["std"] = dice_df.std(axis=1)
+    dice_df["max"] = dice_df.max(axis=1)
+    dice_df["min"] = dice_df.min(axis=1)
+    
+    dice_df.to_csv(f"../result/{folder_name}/statistics_per_patient.csv")
 
-dice_df.to_csv(f"../result/{args.folder_name}/dice.csv")
+    # meanの列のみを取り出し，それらを新しいdfの行とする
+    dice_df = dice_df["mean"]
+    dice_df = pd.DataFrame(dice_df)
+    # 平均，標準偏差，最大値，最小値を計算
+    dice_df.loc["mean"] = dice_df.mean(axis=0)
+    dice_df.loc["std"] = dice_df.std(axis=0)
+    dice_df.loc["max"] = dice_df.max(axis=0)
+    dice_df.loc["min"] = dice_df.min(axis=0)
+    dice_df.to_csv(f"../result/{folder_name}/statistics_all.csv")
+
+# テスト
+if __name__ == "__main__":
+    evaluation("heart")
