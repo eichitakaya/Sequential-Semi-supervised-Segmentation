@@ -35,59 +35,44 @@ def vertical_flip(model, image_tensor):
 
 def horizontal_flip(model, image_tensor):
     # 上下反転し，推論
-    image = image_tensor.flip(2)
+    image = transform_functions.horizontal_flip(image_tensor, inference=True)
     predict = model(image)
     # 推論結果をさらに反転
-    return predict.flip(2)
+    predict = transform_functions.horizontal_flip(predict, inference=True)
+    return predict
 
-def right_shift(model, image_tensor):
-    # 5pixel右にずらす
-    image = image_tensor[:,:,:,:-5]
-    # ずらした分だけ左側を0で埋める
-    image = F.pad(image, (5,0,0,0), mode="constant", value=0)
+def right_shift(model, image_tensor, shift_pixels):
+    # shift_pixels右にずらす
+    image = transform_functions.right_shift(image_tensor, shift_pixels, inference=True)
     # 推論
     predict = model(image)
-    # 推論結果を5pixel左にずらす
-    predict = predict[:,:,:,5:]
-    # ずらした分だけ右側を0で埋める
-    predict = F.pad(predict, (0,5,0,0), mode="constant", value=0)
+    # 推論結果をshift_pixels左にずらす
+    predict = transform_functions.left_shift(predict, shift_pixels, inference=True)
     return predict
 
-def left_shift(model, image_tensor):
-    # 5pixel左にずらす
-    image = image_tensor[:,:,:,5:]
-    # ずらした分だけ右側を0で埋める
-    image = F.pad(image, (0,5,0,0), mode="constant", value=0)
+def left_shift(model, image_tensor, shift_pixels):
+    # shift_pixels左にずらす
+    image = transform_functions.left_shift(image_tensor, shift_pixels, inference=True)
     # 推論
     predict = model(image)
-    # 推論結果を5pixel右にずらす
-    predict = predict[:,:,:,:-5]
-    # ずらした分だけ左側を0で埋める
-    predict = F.pad(predict, (5,0,0,0), mode="constant", value=0)
+    # 推論結果をshift_pixels右にずらす
+    predict = transform_functions.right_shift(predict, shift_pixels, inference=True)
     return predict
 
-def right_rotation(model, image_tensor):
-    # 10度右に回転
-    image = image_tensor
-    image = TF.rotate(image, -10)
+def right_rotation(model, image_tensor, theta):
+    # theta度右に回転
+    image = transform_functions.right_rotation(image_tensor, theta, inference=True)
     predict = model(image)
-    # 推論結果を10度左に回転
-    predict = TF.rotate(predict, 10)
+    # 推論結果をtheta度左に回転
+    predict = transform_functions.left_rotation(predict, theta, inference=True)
     return predict
 
-def left_rotation(model, image_tensor):
-    # 10度左に回転
-    image = image_tensor
-    image = TF.rotate(image, 10)
+def left_rotation(model, image_tensor, theta):
+    # theta度左に回転
+    image = transform_functions.left_rotation(image_tensor, theta, inference=True)
     predict = model(image)
-    # 推論結果を10度右に回転
-    predict = TF.rotate(predict, -10)
-    return predict
-
-def left_rotation(model, image_tensor):
-    # 10度左に回転
-    image = image_tensor
-    predict = model(image)
+    # 推論結果をtheta度右に回転
+    predict = transform_functions.right_rotation(predict, theta, inference=True)
     return predict
 
 def gaussian_noise(model, image_tensor):
@@ -114,13 +99,13 @@ def inference_time_augmentation(model, image_tensor, device, method="average"):
     # 画像を上下反転したものを推論
     #predict_list.append(vertical_flip(model, image_tensor))
     # 画像を右に5pixelずらしたものを推論
-    predict_list.append(right_shift(model, image_tensor))
+    predict_list.append(right_shift(model, image_tensor, 5))
     # 画像を左に5pixelずらしたものを推論
-    predict_list.append(left_shift(model, image_tensor))
+    predict_list.append(left_shift(model, image_tensor, 5))
     # 画像を10度右に回転したものを推論
-    predict_list.append(right_rotation(model, image_tensor))
+    predict_list.append(right_rotation(model, image_tensor, 10))
     # 画像を10度左に回転したものを推論
-    predict_list.append(left_rotation(model, image_tensor))
+    predict_list.append(left_rotation(model, image_tensor, 10))
     
     # 5枚の推論結果の平均を取る
     if method == "average":

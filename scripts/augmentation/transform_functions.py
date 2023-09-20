@@ -36,74 +36,74 @@ def horizontal_flip(image_tensor, target_tensor=None, inference=True):
         image = image_tensor.flip(2)
         return image
 
-def right_shift(image_tensor, target_tensor=None, inference=True):
+def right_shift(image_tensor, shift_pixels, target_tensor=None, inference=True):
     if not inference:
         # target_tensorがNoneの場合、errorを返す
         if target_tensor is None:
             raise ValueError("target_tensor is None")
-        # 5pixel右にずらす
-        image = image_tensor[:,:,:,:-5]
-        target = target_tensor[:,:,:,:-5]
+        # shift_pixelsだけ右にずらす
+        image = image_tensor[:,:,:,:-shift_pixels]
+        target = target_tensor[:,:,:,:-shift_pixels]
         # ずらした分だけ左側を0で埋める
-        image = F.pad(image, (5,0,0,0), mode="constant", value=0)
-        target = F.pad(target, (5,0,0,0), mode="constant", value=0)
+        image = F.pad(image, (shift_pixels,0,0,0), mode="constant", value=0)
+        target = F.pad(target, (shift_pixels,0,0,0), mode="constant", value=0)
         return image, target
     else:
-        # 5pixel右にずらす
-        image = image_tensor[:,:,:,:-5]
+        # shift_pixelsだけ右にずらす
+        image = image_tensor[:,:,:,:-shift_pixels]
         # ずらした分だけ左側を0で埋める
-        image = F.pad(image, (5,0,0,0), mode="constant", value=0)
+        image = F.pad(image, (shift_pixels,0,0,0), mode="constant", value=0)
         return image
 
-def left_shift(image_tensor, target_tensor=None, inference=True):
+def left_shift(image_tensor, shift_pixels, target_tensor=None, inference=True):
     if not inference:
         # target_tensorがNoneの場合、errorを返す
         if target_tensor is None:
             raise ValueError("target_tensor is None")
-        # 5pixel左にずらす
-        image = image_tensor[:,:,:,5:]
-        target = target_tensor[:,:,:,5:]
+        # shift_pixelsだけ左にずらす
+        image = image_tensor[:,:,:,shift_pixels:]
+        target = target_tensor[:,:,:,shift_pixels:]
         # ずらした分だけ右側を0で埋める
-        image = F.pad(image, (0,5,0,0), mode="constant", value=0)
-        target = F.pad(target, (0,5,0,0), mode="constant", value=0)
+        image = F.pad(image, (0,shift_pixels,0,0), mode="constant", value=0)
+        target = F.pad(target, (0,shift_pixels,0,0), mode="constant", value=0)
         return image, target
     else:
-        # 5pixel左にずらす
-        image = image_tensor[:,:,:,5:]
+        # shift_pixelsだけ左にずらす
+        image = image_tensor[:,:,:,shift_pixels:]
         # ずらした分だけ右側を0で埋める
-        image = F.pad(image, (0,5,0,0), mode="constant", value=0)
+        image = F.pad(image, (0,shift_pixels,0,0), mode="constant", value=0)
         return image
 
-def right_rotation(image_tensor, target_tensor=None, inference=True):
+def right_rotation(image_tensor, theta, target_tensor=None, inference=True):
     if not inference:
         # target_tensorがNoneの場合、errorを返す
         if target_tensor is None:
             raise ValueError("target_tensor is None")
-        # 10度右に回転
+        # theta度右に回転
         image = image_tensor
-        image = TF.rotate(image, -10)
+        image = TF.rotate(image, -theta)
         target = target_tensor
-        target = TF.rotate(target, -10)
+        target = TF.rotate(target, -theta)
         return image, target
     else:
-        # 10度右に回転
+        # theta度右に回転
         image = image_tensor
-        image = TF.rotate(image, -10)
+        image = TF.rotate(image, -theta)
         return image
 
-def left_rotation(image_tensor, target_tensor=None, inference=True):
+def left_rotation(image_tensor, theta, target_tensor=None, inference=True):
     if not inference:
         # target_tensorがNoneの場合、errorを返す
         if target_tensor is None:
             raise ValueError("target_tensor is None")
-        # 10度左に回転
+        # theta度左に回転
         image = image_tensor
-        image = TF.rotate(image, 10)
+        image = TF.rotate(image, theta)
         target = target_tensor
-        target = TF.rotate(target, 10)
+        target = TF.rotate(target, theta)
         return image, target
     else:
-        # 10度左に回転
+        # theta度左に回転
         image = image_tensor
-        image = TF.rotate(image, 10)
+        image = TF.rotate(image, theta)
         return image
