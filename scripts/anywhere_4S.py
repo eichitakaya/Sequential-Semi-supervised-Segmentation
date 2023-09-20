@@ -2,8 +2,9 @@ import os
 import math
 import active_selection
 from data_loader import DataLoaderFor4S, predict2img
-from inference_time_augmentation import inference_time_augmentation
-from augmentation import augmentation
+import augmentation.inference_time_augmentation as inference_time_augmentation
+#from inference_time_augmentation import inference_time_augmentation
+import augmentation.augmentation as augmentation
 import torch_networks as networks
 from torch_loss_functions import BCEDiceLoss
 from torch import optim

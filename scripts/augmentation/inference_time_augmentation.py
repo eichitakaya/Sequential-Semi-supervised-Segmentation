@@ -23,15 +23,15 @@ import numpy as np
 import cv2
 import torch_networks as networks
 import torchvision.transforms.functional as TF
-
-
+import augmentation.transform_functions as transform_functions
 
 def vertical_flip(model, image_tensor):
     # 左右反転し，推論
-    image = image_tensor.flip(3)
+    image = transform_functions.vertical_flip(image_tensor, inference=True)
     predict = model(image)
     # 推論結果をさらに反転
-    return predict.flip(3)
+    predict = transform_functions.vertical_flip(predict, inference=True)
+    return predict
 
 def horizontal_flip(model, image_tensor):
     # 上下反転し，推論
@@ -90,6 +90,13 @@ def left_rotation(model, image_tensor):
     predict = model(image)
     return predict
 
+def gaussian_noise(model, image_tensor):
+    # 画像にガウシアンノイズを加える
+    image = image_tensor
+    image = image + torch.randn(image.shape)
+    predict = model(image)
+    return predict
+
 def inference_time_augmentation(model, image_tensor, device, method="average"):
     """_summary_
 
@@ -144,7 +151,7 @@ if __name__ == "__main__":
     image = image.unsqueeze(0)
     
     #result = inference_time_augmentation(model, image, method="vote")
-    result = right_rotation(model, image)
+    result = vertical_flip(model, image)
     
     # resultを画像として保存
     result = result.detach().numpy()

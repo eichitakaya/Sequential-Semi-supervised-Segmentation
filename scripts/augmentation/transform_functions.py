@@ -107,4 +107,3 @@ def left_rotation(image_tensor, target_tensor=None, inference=True):
         image = image_tensor
         image = TF.rotate(image, 10)
         return image
-
