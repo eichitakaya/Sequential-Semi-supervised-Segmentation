@@ -5,6 +5,8 @@ import numpy as np
 import cv2
 import torch_networks as networks
 import torchvision.transforms.functional as TF
+import torchvision
+
 
 # inference=Trueのときは，推論時のみの処理を行う．
 def vertical_flip(image_tensor, target_tensor=None, inference=True):
@@ -107,3 +109,29 @@ def left_rotation(image_tensor, theta, target_tensor=None, inference=True):
         image = image_tensor
         image = TF.rotate(image, theta)
         return image
+    
+def gaussian_noise(image_tensor):
+    # ガウシアンノイズを加える
+    image = image_tensor
+    noise = torch.randn(image.size())
+    print(noise)
+    image = image + noise
+    return image
+
+def gaussian_blur(image_tensor, kernel_size=5, sigma=2):
+    # ガウシアンブラーをかける
+    image = image_tensor
+    blur = torchvision.transforms.GaussianBlur(kernel_size, sigma)
+    image = blur(image)
+    return image
+
+def high_contrast(image_tensor, alpha = 1.05):
+    # コントラストを変える(単にalphaをかけるだけでよい)
+    image = image_tensor * alpha
+    return image
+
+def low_contrast(image_tensor, alpha = 0.95):
+    # コントラストを変える(単にalphaをかけるだけでよい) 
+    image = image_tensor * alpha
+    return image
+    

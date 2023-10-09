@@ -13,8 +13,8 @@ augmentationの種類
 4. - 10 degree rotation
 5. gaussian noise
 6. gaussian blur
-7. random brightness
-8. random contrast
+7. high contrast
+8. row contrast
 """
 import torch
 import torch.nn as nn
@@ -77,8 +77,25 @@ def left_rotation(model, image_tensor, theta):
 
 def gaussian_noise(model, image_tensor):
     # 画像にガウシアンノイズを加える
-    image = image_tensor
-    image = image + torch.randn(image.shape)
+    image = transform_functions.gaussian_noise(image_tensor, inference=True)
+    predict = model(image)
+    return predict
+
+def gaussian_blur(model, image_tensor):
+    # 画像にガウシアンブラーを加える
+    image = transform_functions.gaussian_blur(image_tensor, inference=True)
+    predict = model(image)
+    return predict
+
+def high_contrast(model, image_tensor):
+    # 画像のコントラストを上げる
+    image = transform_functions.high_contrast(image_tensor, inference=True)
+    predict = model(image)
+    return predict
+
+def low_contrast(model, image_tensor):
+    # 画像のコントラストを下げる
+    image = transform_functions.low_contrast(image_tensor, inference=True)
     predict = model(image)
     return predict
 
@@ -106,19 +123,35 @@ def inference_time_augmentation(model, image_tensor, device, method="average"):
     predict_list.append(right_rotation(model, image_tensor, 10))
     # 画像を10度左に回転したものを推論
     predict_list.append(left_rotation(model, image_tensor, 10))
+    # 画像にガウシアンノイズを加えたものを推論
+    predict_list.append(gaussian_noise(model, image_tensor))
+    # 画像にガウシアンブラーを加えたものを推論
+    predict_list.append(gaussian_blur(model, image_tensor))
+    # 画像のコントラストを上げたものを推論
+    predict_list.append(high_contrast(model, image_tensor))
+    # 画像のコントラストを下げたものを推論
+    predict_list.append(low_contrast(model, image_tensor))
     
-    # 5枚の推論結果の平均を取る
+    # 9枚の推論結果の平均を取る
     if method == "average":
         predict = torch.mean(torch.stack(predict_list), dim=0)
         print("hogehogehoge")
         
-    # 5枚の推論結果の多数決を取る
+    # 9枚の推論結果の多数決を取る
     elif method == "vote":
-        # 5枚の推論結果を0,1に変換
+        # 9枚の推論結果を0,1に変換
         predict_list = [torch.where(predict_list[0] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
                         torch.where(predict_list[1] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
-                        torch.where(predict_list[2] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device))]
-        # 3枚の推論結果の多数決を取る
+                        torch.where(predict_list[2] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
+                        torch.where(predict_list[3] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
+                        torch.where(predict_list[4] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
+                        torch.where(predict_list[5] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
+                        torch.where(predict_list[6] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
+                        torch.where(predict_list[7] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device)),
+                        torch.where(predict_list[8] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device))]
+        
+        # 9枚の推論結果の多数決を取る
+        print(predict_list)
         predict = torch.mode(torch.stack(predict_list), dim=0).values
     return predict
 
