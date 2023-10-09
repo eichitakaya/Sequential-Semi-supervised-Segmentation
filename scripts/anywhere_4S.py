@@ -2,9 +2,8 @@ import os
 import math
 import active_selection
 from data_loader import DataLoaderFor4S, predict2img
-import augmentation.inference_time_augmentation as inference_time_augmentation
-#from inference_time_augmentation import inference_time_augmentation
-import augmentation.augmentation as augmentation
+import augmentation.inference_time_augmentation as ita
+import augmentation.augmentation as aug
 import torch_networks as networks
 from torch_loss_functions import BCEDiceLoss
 from torch import optim
@@ -105,7 +104,7 @@ class SequentialSemiSupervisedSegmentation:
             batch_t = train_t[perm[0:self.batch]]
             
             # ここでaugmentation
-            batch_x, batch_t = augmentation(batch_x, batch_t)
+            batch_x, batch_t = aug.augmentation(batch_x, batch_t)
             
             batch_x = batch_x.to(self.device)
             batch_t = batch_t.to(self.device)
@@ -147,7 +146,7 @@ class SequentialSemiSupervisedSegmentation:
         add_x = add_x.to(self.device)
         print(add_x.shape)
         if self.ita == 1:
-            predict = inference_time_augmentation(training_model, add_x, device=self.device)
+            predict = ita.inference_time_augmentation(training_model, add_x, device=self.device)
         else:
             predict = training_model(add_x)
 
@@ -183,7 +182,7 @@ class SequentialSemiSupervisedSegmentation:
                 batch_t = train_t[perm[0:self.batch]]
                 
                 # ここでaugmentation
-                batch_x, batch_t = augmentation(batch_x, batch_t)
+                batch_x, batch_t = aug.augmentation(batch_x, batch_t)
                 
                 batch_x = batch_x.to(self.device)
                 batch_t = batch_t.to(self.device)
@@ -206,7 +205,7 @@ class SequentialSemiSupervisedSegmentation:
             add_x = add_x.to(self.device)
             
             if self.ita == 1:
-                predict = inference_time_augmentation(training_model, add_x, device=self.device)
+                predict = ita.inference_time_augmentation(training_model, add_x, device=self.device)
             else:
                 predict = training_model(add_x)
             #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．
@@ -243,7 +242,7 @@ class SequentialSemiSupervisedSegmentation:
         add_x = add_x.to(self.device)
         add_t = add_t.to(self.device)
         if self.ita == 1:
-            predict = inference_time_augmentation(training_model, add_x, device=self.device)
+            predict = ita.inference_time_augmentation(training_model, add_x, device=self.device)
         else:
             predict = training_model(add_x)
 
@@ -280,7 +279,7 @@ class SequentialSemiSupervisedSegmentation:
                 batch_x = train_x[perm[0:self.batch]] / 255
                 batch_t = train_t[perm[0:self.batch]]
                 # ここでaugmentation
-                batch_x, batch_t = augmentation(batch_x, batch_t)
+                batch_x, batch_t = aug.augmentation(batch_x, batch_t)
                 batch_x = batch_x.to(self.device)
                 batch_t = batch_t.to(self.device)
                 predict = training_model(batch_x)
@@ -298,7 +297,7 @@ class SequentialSemiSupervisedSegmentation:
             add_x = add_x.to(self.device)
             add_t = add_t.to(self.device)
             if self.ita == 1:
-                predict = inference_time_augmentation(training_model, add_x, device=self.device)
+                predict = ita.inference_time_augmentation(training_model, add_x, device=self.device)
             else:
                 predict = training_model(add_x)
             #１つだけ得られた新たな推論結果を，tの該当箇所(n+batch番目)に格納する．

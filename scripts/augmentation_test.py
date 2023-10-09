@@ -14,6 +14,67 @@ def vertical_flip(model, image_tensor):
     predict = transform_functions.vertical_flip(predict, inference=True)
     return predict
 
+def horizontal_flip(model, image_tensor):
+    image = transform_functions.horizontal_flip(image_tensor, inference=True)
+    predict = model(image)
+    # 推論結果をさらに反転
+    predict = transform_functions.horizontal_flip(predict, inference=True)
+    return predict
+
+def right_shift(model, image_tensor, shift_pixels):
+    image = transform_functions.right_shift(image_tensor, shift_pixels, inference=True)
+    predict = model(image)
+    # 推論結果をさらに反転
+    predict = transform_functions.left_shift(predict, shift_pixels, inference=True)
+    return predict
+
+def left_shift(model, image_tensor, shift_pixels):
+    image = transform_functions.left_shift(image_tensor, shift_pixels, inference=True)
+    predict = model(image)
+    # 推論結果をさらに反転
+    predict = transform_functions.right_shift(predict, shift_pixels, inference=True)
+    return predict
+
+def right_rotation(model, image_tensor, theta):
+    image = transform_functions.right_rotation(image_tensor, theta, inference=True)
+    predict = model(image)
+    # 推論結果をさらに反転
+    predict = transform_functions.left_rotation(predict, theta, inference=True)
+    return predict
+
+def left_rotation(model, image_tensor, theta):
+    image = transform_functions.left_rotation(image_tensor, theta, inference=True)
+    predict = model(image)
+    # 推論結果をさらに反転
+    predict = transform_functions.right_rotation(predict, theta, inference=True)
+    return predict
+
+def gaussian_noise(model, image_tensor):
+    image = transform_functions.gaussian_noise(image_tensor)
+    predict = image
+    return predict
+
+def gaussian_blur(model, image_tensor):
+    image = transform_functions.gaussian_blur(image_tensor)
+    predict = image
+    return predict
+
+def random_brightness(image_tensor):
+    print(image_tensor.max(), image_tensor.min())
+    image = transform_functions.random_brightness(image_tensor)
+    #predict = model(image)
+    predict = image
+    print(predict.max(), predict.min())
+    return predict
+
+def random_contrast(image_tensor):
+    print(image_tensor.max(), image_tensor.min())
+    image = transform_functions.random_contrast(image_tensor)
+    #predict = model(image)
+    predict = image
+    print(predict.max(), predict.min())
+    return predict
+
 model = networks.UNet()
 # takaya.jpgをグレースケールで読み込みtensorに変換
 image = cv2.imread("takaya.jpg")
@@ -24,9 +85,8 @@ image = image.float()
 # 4次元に変換
 image = image.unsqueeze(0)
 image = image.unsqueeze(0)
-
 #result = inference_time_augmentation(model, image, method="vote")
-result = vertical_flip(model, image)
+result = gaussian_noise(model, image)
 
 # resultを画像として保存
 result = result.detach().numpy()

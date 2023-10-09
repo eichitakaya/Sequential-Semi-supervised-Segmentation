@@ -77,29 +77,29 @@ def left_rotation(model, image_tensor, theta):
 
 def gaussian_noise(model, image_tensor):
     # 画像にガウシアンノイズを加える
-    image = transform_functions.gaussian_noise(image_tensor, inference=True)
+    image = transform_functions.gaussian_noise(image_tensor)
     predict = model(image)
     return predict
 
 def gaussian_blur(model, image_tensor):
     # 画像にガウシアンブラーを加える
-    image = transform_functions.gaussian_blur(image_tensor, inference=True)
+    image = transform_functions.gaussian_blur(image_tensor)
     predict = model(image)
     return predict
 
 def high_contrast(model, image_tensor):
     # 画像のコントラストを上げる
-    image = transform_functions.high_contrast(image_tensor, inference=True)
+    image = transform_functions.high_contrast(image_tensor)
     predict = model(image)
     return predict
 
 def low_contrast(model, image_tensor):
     # 画像のコントラストを下げる
-    image = transform_functions.low_contrast(image_tensor, inference=True)
+    image = transform_functions.low_contrast(image_tensor)
     predict = model(image)
     return predict
 
-def inference_time_augmentation(model, image_tensor, device, method="average"):
+def inference_time_augmentation(model, image_tensor, device, method="vote"):
     """_summary_
 
     Args:
@@ -151,7 +151,7 @@ def inference_time_augmentation(model, image_tensor, device, method="average"):
                         torch.where(predict_list[8] > 0.5, torch.tensor(1).to(device), torch.tensor(0).to(device))]
         
         # 9枚の推論結果の多数決を取る
-        print(predict_list)
+        #print(predict_list)
         predict = torch.mode(torch.stack(predict_list), dim=0).values
     return predict
 

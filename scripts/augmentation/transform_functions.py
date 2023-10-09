@@ -112,9 +112,13 @@ def left_rotation(image_tensor, theta, target_tensor=None, inference=True):
     
 def gaussian_noise(image_tensor):
     # ガウシアンノイズを加える
+    # gpu_idを合わせる必要がある
     image = image_tensor
+    # image_tensorのgpu_idを取得
+    gpu_id = image.get_device()
     noise = torch.randn(image.size())
-    print(noise)
+    # noiseのgpu_idをimage_tensorのgpu_idに合わせる
+    noise = noise.cuda(gpu_id)
     image = image + noise
     return image
 
