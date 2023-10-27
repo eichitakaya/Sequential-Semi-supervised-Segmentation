@@ -38,12 +38,13 @@ def horizontal_flip(image_tensor, target_tensor=None, inference=True):
         image = image_tensor.flip(2)
         return image
 
-def right_shift(image_tensor, shift_pixels, target_tensor=None, inference=True):
+def right_shift(image_tensor, target_tensor=None, shift_pixels=10, inference=True):
     if not inference:
         # target_tensorがNoneの場合、errorを返す
         if target_tensor is None:
             raise ValueError("target_tensor is None")
         # shift_pixelsだけ右にずらす
+        print(shift_pixels)
         image = image_tensor[:,:,:,:-shift_pixels]
         target = target_tensor[:,:,:,:-shift_pixels]
         # ずらした分だけ左側を0で埋める
@@ -57,12 +58,13 @@ def right_shift(image_tensor, shift_pixels, target_tensor=None, inference=True):
         image = F.pad(image, (shift_pixels,0,0,0), mode="constant", value=0)
         return image
 
-def left_shift(image_tensor, shift_pixels, target_tensor=None, inference=True):
+def left_shift(image_tensor, target_tensor=None, shift_pixels=10, inference=True):
     if not inference:
         # target_tensorがNoneの場合、errorを返す
         if target_tensor is None:
             raise ValueError("target_tensor is None")
         # shift_pixelsだけ左にずらす
+        print(shift_pixels)
         image = image_tensor[:,:,:,shift_pixels:]
         target = target_tensor[:,:,:,shift_pixels:]
         # ずらした分だけ右側を0で埋める
@@ -76,7 +78,7 @@ def left_shift(image_tensor, shift_pixels, target_tensor=None, inference=True):
         image = F.pad(image, (0,shift_pixels,0,0), mode="constant", value=0)
         return image
 
-def right_rotation(image_tensor, theta, target_tensor=None, inference=True):
+def right_rotation(image_tensor, target_tensor=None, theta=10, inference=True):
     if not inference:
         # target_tensorがNoneの場合、errorを返す
         if target_tensor is None:
@@ -93,7 +95,7 @@ def right_rotation(image_tensor, theta, target_tensor=None, inference=True):
         image = TF.rotate(image, -theta)
         return image
 
-def left_rotation(image_tensor, theta, target_tensor=None, inference=True):
+def left_rotation(image_tensor, target_tensor=None, theta=10, inference=True):
     if not inference:
         # target_tensorがNoneの場合、errorを返す
         if target_tensor is None:
@@ -118,7 +120,9 @@ def gaussian_noise(image_tensor):
     gpu_id = image.get_device()
     noise = torch.randn(image.size())
     # noiseのgpu_idをimage_tensorのgpu_idに合わせる
-    noise = noise.cuda(gpu_id)
+    # ただし、gpu_idが負の場合は何もしない
+    if gpu_id >= 0:
+        noise = noise.cuda(gpu_id)
     image = image + noise
     return image
 

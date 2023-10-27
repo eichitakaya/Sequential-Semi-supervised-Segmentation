@@ -7,15 +7,14 @@ output: 11枚の推論結果の平均
 
 augmentationの種類
 0. なし
-1. vertical flip
-2. horizontal flip
-3. 90 degree rotation
-4. 180 degree rotation
-5. 270 degree rotation
-6. gaussian noise
-7. gaussian blur
-9. random brightness
-10. random contrast
+1. right shift
+2. left shift
+3. + 10 degree rotation
+4. - 10 degree rotation
+5. gaussian noise
+6. gaussian blur
+7. high contrast
+8. low contrast
 """
 import torch
 import torch.nn as nn
@@ -24,33 +23,56 @@ import numpy as np
 from PIL import Image
 import torch_networks as networks
 import random
+import augmentation.transform_functions as transform_functions
 
 
-def vertical_flip(image_tensor, target_tensor, p=0.5):
-    # 0.5の確率で左右反転
+def right_shift(image_tensor, target_tensor, shift_pixels, p=0.5):
+    # 0.5の確率で右にshift_pixelsだけずらす
     if random.random() < p:
-        return image_tensor.flip(1), target_tensor.flip(1)
-    else:
-        return image_tensor, target_tensor
+        image_tensor, target_tensor = transform_functions.right_shift(image_tensor, target_tensor, shift_pixels, inference=False)
+    return image_tensor, target_tensor
 
-def horizontal_flip(image_tensor, target_tensor, p=0.5):
-    # 0.5の確率で上下反転
+def left_shift(image_tensor, target_tensor, shift_pixels, p=0.5):
+    # 0.5の確率で左にshift_pixelsだけずらす
     if random.random() < p:
-        return image_tensor.flip(0), target_tensor.flip(0)
-    else:
-        return image_tensor, target_tensor
+        image_tensor, target_tensor = transform_functions.left_shift(image_tensor, target_tensor, shift_pixels, inference=False)
+    return image_tensor, target_tensor
 
-def rotate_90(image_tensor, p=0.5):
-    # 90度回転
-    return torch.rot90(image_tensor, 1, [2,3])
+def right_rotation(image_tensor, target_tensor, theta, p=0.5):
+    # 0.5の確率で右に10度回転
+    if random.random() < p:
+        image_tensor, target_tensor = transform_functions.right_rotation(image_tensor, target_tensor, theta, inference=False)
+    return image_tensor, target_tensor
 
-def rotate_180(image_tensor, p=0.5):
-    # 180度回転
-    return torch.rot90(image_tensor, 2, [2,3])
+def left_rotation(image_tensor, target_tensor, theta, p=0.5):
+    # 0.5の確率で左に10度回転
+    if random.random() < p:
+        image_tensor, target_tensor = transform_functions.left_rotation(image_tensor, target_tensor, theta, inference=False)
+    return image_tensor, target_tensor
 
-def rotate_270(image_tensor, p=0.5):
-    # 270度回転
-    return torch.rot90(image_tensor, 3, [2,3])
+def gaussian_noise(image_tensor, p=0.5):
+    # 0.5の確率でガウシアンノイズを加える
+    if random.random() < p:
+        image_tensor = transform_functions.gaussian_noise(image_tensor)
+    return image_tensor
+
+def gaussian_blur(image_tensor, p=0.5):
+    # 0.5の確率でガウシアンブラーをかける
+    if random.random() < p:
+        image_tensor = transform_functions.gaussian_blur(image_tensor)
+    return image_tensor
+
+def high_contrast(image_tensor, p=0.5):
+    # 0.5の確率でコントラストを上げる
+    if random.random() < p:
+        image_tensor = transform_functions.high_contrast(image_tensor)
+    return image_tensor
+
+def low_contrast(image_tensor, p=0.5):
+    # 0.5の確率でコントラストを上げる
+    if random.random() < p:
+        image_tensor = transform_functions.low_contrast(image_tensor)
+    return image_tensor
 
 def augmentation(image_tensor, target_tensor):
     """_summary_
@@ -66,7 +88,16 @@ def augmentation(image_tensor, target_tensor):
     
     for i in range(len(augmented_tensor_image)):
         image, target = image_tensor[i], target_tensor[i]
-        image, target = horizontal_flip(image, target)
+        # 順番にaugmentation関数を通していく
+        #image, target = right_shift(image, target, shift_pixels=10)
+        #image, target = left_shift(image, target, shift_pixels=10)
+        image, target = right_rotation(image, target, theta=10)
+        image, target = left_rotation(image, target, theta=10)
+        image = gaussian_noise(image)
+        image = gaussian_blur(image)
+        image = high_contrast(image)
+        image = low_contrast(image)
+        
         augmented_tensor_image[i] = image
         augmented_tensor_target[i] = target
     

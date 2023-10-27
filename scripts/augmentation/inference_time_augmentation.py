@@ -14,7 +14,7 @@ augmentationの種類
 5. gaussian noise
 6. gaussian blur
 7. high contrast
-8. row contrast
+8. low contrast
 """
 import torch
 import torch.nn as nn
@@ -99,7 +99,7 @@ def low_contrast(model, image_tensor):
     predict = model(image)
     return predict
 
-def inference_time_augmentation(model, image_tensor, device, method="vote"):
+def inference_time_augmentation(model, image_tensor, device, method="average"):
     """_summary_
 
     Args:
@@ -116,9 +116,9 @@ def inference_time_augmentation(model, image_tensor, device, method="vote"):
     # 画像を上下反転したものを推論
     #predict_list.append(vertical_flip(model, image_tensor))
     # 画像を右に5pixelずらしたものを推論
-    predict_list.append(right_shift(model, image_tensor, 5))
+    predict_list.append(right_shift(model, image_tensor, 10))
     # 画像を左に5pixelずらしたものを推論
-    predict_list.append(left_shift(model, image_tensor, 5))
+    predict_list.append(left_shift(model, image_tensor, 10))
     # 画像を10度右に回転したものを推論
     predict_list.append(right_rotation(model, image_tensor, 10))
     # 画像を10度左に回転したものを推論

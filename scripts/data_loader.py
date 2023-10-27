@@ -192,8 +192,8 @@ def volume_windowning(volume):
     volume = np.uint8(volume) # 符号なしバイトに変換
     return volume
 
-def predict2img(predict):
-    mask = predict > 0.5
+def predict2img(predict, threshold=0.5):
+    mask = predict > threshold
     img = torch.zeros_like(predict)
     img[mask] = 1
     return img
