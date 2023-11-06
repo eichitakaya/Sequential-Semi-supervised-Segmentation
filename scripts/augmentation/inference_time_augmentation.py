@@ -106,32 +106,35 @@ def inference_time_augmentation(model, image_tensor, device, method="average"):
         model (_type_): 任意のsegmentationモデル
         image_tensor (_type_): (1,1,H,W)のtensor
         method (_type_): "vote", "average"
+        
+    inferenceモードを発動するのを忘れないこと
     """
     # 3枚の推論結果を格納するリスト
     predict_list = []
     # そのままの画像を推論
-    predict_list.append(model(image_tensor))
-    # 画像を左右反転したものを推論
-    #predict_list.append(horizontal_flip(model, image_tensor))
-    # 画像を上下反転したものを推論
-    #predict_list.append(vertical_flip(model, image_tensor))
-    # 画像を右に5pixelずらしたものを推論
-    predict_list.append(right_shift(model, image_tensor, 10))
-    # 画像を左に5pixelずらしたものを推論
-    predict_list.append(left_shift(model, image_tensor, 10))
-    # 画像を10度右に回転したものを推論
-    predict_list.append(right_rotation(model, image_tensor, 10))
-    # 画像を10度左に回転したものを推論
-    predict_list.append(left_rotation(model, image_tensor, 10))
-    # 画像にガウシアンノイズを加えたものを推論
-    predict_list.append(gaussian_noise(model, image_tensor))
-    # 画像にガウシアンブラーを加えたものを推論
-    predict_list.append(gaussian_blur(model, image_tensor))
-    # 画像のコントラストを上げたものを推論
-    predict_list.append(high_contrast(model, image_tensor))
-    # 画像のコントラストを下げたものを推論
-    predict_list.append(low_contrast(model, image_tensor))
-    
+    with torch.no_grad():
+        predict_list.append(model(image_tensor))
+        # 画像を左右反転したものを推論
+        #predict_list.append(horizontal_flip(model, image_tensor))
+        # 画像を上下反転したものを推論
+        #predict_list.append(vertical_flip(model, image_tensor))
+        # 画像を右に5pixelずらしたものを推論
+        predict_list.append(right_shift(model, image_tensor, 10))
+        # 画像を左に5pixelずらしたものを推論
+        predict_list.append(left_shift(model, image_tensor, 10))
+        # 画像を10度右に回転したものを推論
+        predict_list.append(right_rotation(model, image_tensor, 10))
+        # 画像を10度左に回転したものを推論
+        predict_list.append(left_rotation(model, image_tensor, 10))
+        # 画像にガウシアンノイズを加えたものを推論
+        predict_list.append(gaussian_noise(model, image_tensor))
+        # 画像にガウシアンブラーを加えたものを推論
+        predict_list.append(gaussian_blur(model, image_tensor))
+        # 画像のコントラストを上げたものを推論
+        predict_list.append(high_contrast(model, image_tensor))
+        # 画像のコントラストを下げたものを推論
+        predict_list.append(low_contrast(model, image_tensor))
+        print("hogehogehogehoge")
     # 9枚の推論結果の平均を取る
     if method == "average":
         predict = torch.mean(torch.stack(predict_list), dim=0)
